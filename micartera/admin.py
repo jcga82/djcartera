@@ -103,11 +103,11 @@ class CarteraAdmin(admin.ModelAdmin):
     fieldsets = [
         ('Información general',               
             {'fields': 
-                [('nombre', 'capital_inicial'),
+                [('nombre', 'capital_inicial', 'estado_cuenta'),
                 ]},
         ),
     ]
-    list_display = ('nombre', 'capital_inicial',)
+    list_display = ('nombre', 'capital_inicial', 'estado_cuenta')
     # actions = [desactiva_empresa, descarga_registros]
     inlines = [MovimientoInline]
 

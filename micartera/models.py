@@ -42,8 +42,9 @@ class Empresa(models.Model):
 
 class Cartera(models.Model):
     nombre = models.CharField(max_length=200)
-    capital_inicial = models.DecimalField(default=0, decimal_places=2, max_digits=10)
-
+    capital_inicial = models.FloatField(default=0)
+   # cash_balance = models.FloatField(default=0.0)
+    
     @property
     def estado_cuenta(self):
         compras = Movimiento.objects.filter(tipo='c').aggregate(
@@ -90,9 +91,9 @@ class Movimiento(models.Model):
     @property
     def coste_total(self):
         if self.tipo == 'c':
-            return '%.2f EUR' % (float(self.coste_operacion + self.comision))
+            return '%.2f' % (float(self.coste_operacion + self.comision))
         else:
-            return '%.2f EUR' % (self.coste_operacion - self.comision)
+            return '%.2f' % (self.coste_operacion - self.comision)
 
     def __str__(self):
         return self.tipo + ' ' +  str(self.acciones) + ' ' + self.empresa.nombre

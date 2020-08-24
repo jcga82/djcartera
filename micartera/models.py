@@ -38,7 +38,7 @@ class Empresa(models.Model):
     pub_date = models.DateTimeField('fecha alta', default=datetime.now, blank=True)
 
     def __str__(self):
-        return self.nombre
+        return self.symbol
 
 class Cartera(models.Model):
     nombre = models.CharField(max_length=200)
@@ -98,19 +98,19 @@ class Movimiento(models.Model):
     def __str__(self):
         return self.tipo + ' ' +  str(self.acciones) + ' ' + self.empresa.nombre
 
-    def save(self, *args, **kwargs):
-        if self.tipo == 'v':
-            self.acciones = self.acciones * -1
-        else:
-            self.acciones = self.acciones
-        super(Movimiento, self).save(*args, **kwargs)
+    # def save(self, *args, **kwargs):
+    #     if self.tipo == 'v':
+    #         self.acciones = self.acciones * -1
+    #     else:
+    #         self.acciones = self.acciones
+    #     super(Movimiento, self).save(*args, **kwargs)
 
-    def update(self, *args, **kwargs):
-        if self.tipo == 'v':
-            self.acciones = self.acciones * -1
-        else:
-            self.acciones = self.acciones
-        super(Movimiento, self).save(*args, **kwargs)
+    # def update(self, *args, **kwargs):
+    #     if self.tipo == 'v':
+    #         self.acciones = self.acciones * -1
+    #     else:
+    #         self.acciones = self.acciones
+    #     super(Movimiento, self).save(*args, **kwargs)
 
 class FundamentalesEmpresa(models.Model):
     empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE)

@@ -1,16 +1,20 @@
 from django.shortcuts import render
-from .models import Movimiento, Cartera
+from .models import Movimiento, Cartera, Empresa
 from django.db.models import Avg, Sum, F, Q, FloatField, Case, CharField, Value, When
 from django.views.generic import TemplateView
 from datetime import datetime
 from . import portfolio_utils as pu
+from . import portfolio_analysis as pa
 from pyrtfolio.StockPortfolio import StockPortfolio
+import pandas as pd
+import os
+from django_pandas.io import read_frame
 
 class DashboardView(TemplateView):
     template_name = 'micartera/dashboard.html'
 
     latest_movimientos_list = Movimiento.objects.order_by('-fecha')[:5]
-    print(latest_movimientos_list)
+    #print(latest_movimientos_list)
 
     def get_graph_sales_year_month(self):
         data = []
@@ -46,7 +50,6 @@ def index(request):
         )
 
 
-
     cartera_actual_list = Movimiento.objects.values(
             'empresa__symbol'
         ).annotate(
@@ -61,24 +64,50 @@ def index(request):
         #     output_field=IntegerField(),
         # )
 
-    print(movimientos_list)
+    # THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
+    # my_file = os.path.join(THIS_FOLDER, 'test_stock_transactions.csv')
+    portfolio_df = read_frame(Movimiento.objects.all()) #pd.read_csv(my_file)
+    portfolio_df['fecha'] = pd.to_datetime(portfolio_df['fecha'].dt.normalize())
+    print('portfolio_df:', portfolio_df)
 
-    positions_summary = pu.get_position_summary(cartera_actual_list)#Movimiento.objects.all())
+    symbols = portfolio_df.empresa.unique()
+    # empresas = Empresa.objects.filter(nombre__in=empresas_cartera)
+    # symbols = empresas.values_list('symbol', flat=True)
+    # print(symbols)
+    
+    stocks_start = datetime(2020, 7, 24)
+    stocks_end = datetime(2020, 8, 24)
+
+    daily_adj_close = pa.get_data(symbols, stocks_start, stocks_end)
+    daily_adj_close = daily_adj_close[['Close']].reset_index()
+    #print(daily_adj_close) #Ofrece el precio de cierre de todo el periodo seleccionado
+    # daily_benchmark = get_benchmark(['SPY'], stocks_start, stocks_end)
+    # daily_benchmark = daily_benchmark[['Date', 'Close']]
+    market_cal = pa.create_market_cal(stocks_start, stocks_end)
+    #print('market_cal:', market_cal)
+    active_portfolio = pa.portfolio_start_balance(portfolio_df, stocks_start)
+    print('active_portfolio:', active_portfolio)
+    positions_per_day = pa.time_fill(active_portfolio, market_cal)
+    print('positions_per_day:', positions_per_day)
+
+
+
+    #positions_summary = pu.get_position_summary(cartera_actual_list)#Movimiento.objects.all())
     
     
     #print(positions_summary)
     # print(positions_summary["Total Gain/Loss ($)"].iloc[-1])
 
-    accounts = Cartera.objects.all()
-    total_cash = sum((acct.capital_inicial for acct in accounts))
+    # accounts = Cartera.objects.all()
+    # total_cash = sum((acct.capital_inicial for acct in accounts))
 
     context = {
-        "positions": positions_summary.to_html(index=False, float_format=lambda x: '%.2f' % x),
-        "accounts": [acct.nombre for acct in accounts],
-        "cash_balances": {acct: acct.capital_inicial for acct in accounts},
-        "total_cash": "{:,.2f}".format(total_cash),
-        "total_value": "{:,.2f}".format(total_cash + positions_summary["Market Value ($)"].iloc[0]),# + positions_summary["Total Gain/Loss ($)"].iloc[0]),
-        "num_positions": positions_summary.shape[0] - 1,
+        # "positions": positions_summary.to_html(index=False, float_format=lambda x: '%.2f' % x),
+        # "accounts": [acct.nombre for acct in accounts],
+        # "cash_balances": {acct: acct.capital_inicial for acct in accounts},
+        # "total_cash": "{:,.2f}".format(total_cash),
+        # "total_value": "{:,.2f}".format(total_cash + positions_summary["Market Value ($)"].iloc[0]),# + positions_summary["Total Gain/Loss ($)"].iloc[0]),
+        # "num_positions": positions_summary.shape[0] - 1,
 
         'latest_movimientos_list': movimientos_list,
         'cartera_actual_list': cartera_actual_list,

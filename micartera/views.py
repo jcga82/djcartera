@@ -41,7 +41,7 @@ def index(request):
     # print(portfolio.__dict__)                
     latest_movimientos_list = Movimiento.objects.order_by('-fecha')[:5]
     cartera_actual_list = Movimiento.objects.values(
-            'empresa__nombre'
+            'empresa__symbol'
         ).annotate(
             total_acciones=Sum('acciones'),
             #rentabilidad=Sum('coste_total'),
@@ -56,7 +56,7 @@ def index(request):
 
     print(cartera_actual_list)
 
-    positions_summary = pu.get_position_summary(Movimiento.objects.all())
+    positions_summary = pu.get_position_summary(cartera_actual_list)#Movimiento.objects.all())
     
     accounts = Cartera.objects.all()
     total_cash = sum((acct.capital_inicial for acct in accounts))

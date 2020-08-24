@@ -41,7 +41,7 @@
     <!--Sidebar-->
     <div id="sidenav" class="sidenav">
 
-        <p id="accounts-header" class="sidebar-header">Select Accounts To Display</p>
+        <p id="accounts-header" class="sidebar-header">Selecciona la Cartera a Mostrar</p>
         <select multiple="multiple" name="accounts[]" id="dropdown_accounts" class="form-control">
             {% for acct in accounts %}
                 <option value="{{ acct }}" class="form-control">{{ acct }}</option>
@@ -55,19 +55,19 @@
 
         <hr>
 
-        <p id="total-value-header" class="sidebar-header">Total Value</p>
+        <p id="total-value-header" class="sidebar-header">Total Valor</p>
         <p id="total-value">${{ total_value }}</p>
 
         <hr>
 
-        <p id="position-count-header" class="sidebar-header">Number of Positions</p>
+        <p id="position-count-header" class="sidebar-header">Número de Posiciones</p>
         <p id="position-count">{{ num_positions }}</p>
 
         <hr>
 
     </div>
 
-    <p id="positions-header" class="page-title">Positions</p>
+    <p id="positions-header" class="page-title">Posiciones</p>
 
     <hr>
 

@@ -16,7 +16,7 @@ def make_iex_request(ticker):
 def get_position_updates(position, max_retries=10, retry_after=1):
     """Gets metric updates from IEX API for a single Position object"""
 
-    ticker = position.empresa.symbol
+    ticker = position['empresa__symbol']
     response = make_iex_request(ticker)
     status_code = response.status_code
 
@@ -40,14 +40,14 @@ def get_position_updates(position, max_retries=10, retry_after=1):
     pct_change = 100. * (data['quote']['changePercent'] or 0.00)
 
     record = {
-        "Name": position.empresa.nombre,
+        "Name": position['empresa__symbol'],
         "Symbol": ticker,
-        "Shares": position.acciones,
-        "Cost Basis ($)": position.coste_operacion,
+        "Shares": position['total_acciones'],
+        "Cost Basis ($)": position['coste_operacion'],
         "Last Price ($)": price,
         "Day's Change ($)": change,
         "Day's Change (%)": pct_change,
-        "Account": position.cartera.nombre
+        # "Account": position.cartera.nombre
     }
 
     return record

@@ -122,7 +122,7 @@ def get_position_summary(positions):
     """Builds and formats summary of positions for given Position object input"""
 
     # columns to return
-    cols = ["Name", "Symbol", "Shares", "Market Value ($)", "Last Price ($)", "Day's Change ($)", "Day's Change (%)",
+    cols = ["Name", "Symbol", "Shares", "Market Value ($)", "Último precio ($)", "Day's Change ($)", "Day's Change (%)",
             "Day's Gain/Loss ($)", "Cost Basis ($)", "Total Gain/Loss ($)", "Overall Return (%)", "Account"]
 
     df = get_positions_dataframe(positions, nthreads=10)
@@ -136,6 +136,17 @@ def get_position_summary(positions):
     df = df.append(totals_df, ignore_index=True)
 
     # derived values needed after adding totals row
+    # Si ya no tengo acciones aqui quiero que aparezca la gancia o perdida
+    print("ESTOOOO Hay X acciones con 0:")
+    print(df['Shares'].isnull().sum().sum())
+    df.loc[df['Shares'].isnull(),'value_is_NaN'] = 'Yes'
+    # if (df['Shares'].isnull().any()):
+    #     print("Vamos")
+    #     df["Total Gain/Loss ($)"] = (df["Market Value ($)"] - df["Cost Basis ($)"]).astype(float).round(2)
+    # else:
+    #     df["Total Gain/Loss ($)"] = (df["Cost Basis ($)"]).astype(float).round(2)
+    
+    
     df["Total Gain/Loss ($)"] = (df["Market Value ($)"] - df["Cost Basis ($)"]).astype(float).round(2)
     df["Overall Return (%)"] = (100. * df["Total Gain/Loss ($)"] / df["Cost Basis ($)"]).astype(float).round(2)
 

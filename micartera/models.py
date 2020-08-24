@@ -105,6 +105,13 @@ class Movimiento(models.Model):
             self.acciones = self.acciones
         super(Movimiento, self).save(*args, **kwargs)
 
+    def update(self, *args, **kwargs):
+        if self.tipo == 'v':
+            self.acciones = self.acciones * -1
+        else:
+            self.acciones = self.acciones
+        super(Movimiento, self).save(*args, **kwargs)
+
 class FundamentalesEmpresa(models.Model):
     empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE)
     beneficios = models.DecimalField(default=0, decimal_places=2, max_digits=10)

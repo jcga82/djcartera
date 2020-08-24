@@ -39,7 +39,14 @@ def index(request):
     #                 num_of_shares=2,
     #                 cost_per_share=7.2)
     # print(portfolio.__dict__)                
-    latest_movimientos_list = Movimiento.objects.order_by('-fecha')[:5]
+    movimientos_list = Movimiento.objects.values(
+            'empresa__symbol'
+        ).annotate(
+            total_acciones=Sum('acciones'),
+        )
+
+
+
     cartera_actual_list = Movimiento.objects.values(
             'empresa__symbol'
         ).annotate(
@@ -47,17 +54,21 @@ def index(request):
             #rentabilidad=Sum('coste_total'),
             coste_operacion=Sum(F('precio') * F('acciones') * F('cambio_moneda'), output_field=FloatField()),
             precio_promedio=Avg(F('precio') * F('acciones') / F('acciones'), output_field=FloatField())
-        )
+        )#.filter(total_acciones>0)
         # sales_price=Case(
         #     When(discount__isnull=True, then=F('price')),
         #     When(discount__isnull=False, then=(F('price') - (F('discount') * F('price')) / 100)),
         #     output_field=IntegerField(),
         # )
 
-    print(cartera_actual_list)
+    print(movimientos_list)
 
     positions_summary = pu.get_position_summary(cartera_actual_list)#Movimiento.objects.all())
     
+    
+    #print(positions_summary)
+    # print(positions_summary["Total Gain/Loss ($)"].iloc[-1])
+
     accounts = Cartera.objects.all()
     total_cash = sum((acct.capital_inicial for acct in accounts))
 
@@ -66,10 +77,10 @@ def index(request):
         "accounts": [acct.nombre for acct in accounts],
         "cash_balances": {acct: acct.capital_inicial for acct in accounts},
         "total_cash": "{:,.2f}".format(total_cash),
-        "total_value": "{:,.2f}".format(total_cash + positions_summary["Market Value ($)"].iloc[0]),
+        "total_value": "{:,.2f}".format(total_cash + positions_summary["Market Value ($)"].iloc[0]),# + positions_summary["Total Gain/Loss ($)"].iloc[0]),
         "num_positions": positions_summary.shape[0] - 1,
 
-        'latest_movimientos_list': latest_movimientos_list,
+        'latest_movimientos_list': movimientos_list,
         'cartera_actual_list': cartera_actual_list,
     }
 

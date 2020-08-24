@@ -60,14 +60,14 @@
 
         <hr>
 
-        <p id="position-count-header" class="sidebar-header">Número de Posiciones</p>
+        <p id="position-count-header" class="sidebar-header">Número de Acciones en Cartera</p>
         <p id="position-count">{{ num_positions }}</p>
 
         <hr>
 
     </div>
 
-    <p id="positions-header" class="page-title">Posiciones</p>
+    <p id="positions-header" class="page-title">Posiciones de Mi Cartera</p>
 
     <hr>
 
@@ -211,65 +211,3 @@
     </script>
 
 {% endblock %}
-
-
-
-
-
-
-<!-- <!doctype html>
-<html>
-
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="">
-    <link rel="icon" href="favicon.ico">
-
-    <title>Cartera actual </title>
-
-    {# Cargamos la librería #} {% load bootstrap4 %} {# CSS Bootstrap #} {% bootstrap_css %}
-</head>
-
-<body>
-    {% if cartera_actual_list %}
-    <div class="table-responsive">
-        <table class="table table-hover">
-            {% for i in cartera_actual_list %}
-            <thead class="thead-dark">
-                <tr>
-                    {% if i.total_acciones > 0 %}
-                    <th>Empresa</th>
-                    <th>Acciones</th>
-                    <th>Precio medio</th>
-                    {% else %}
-                    <th>Empresa</th>
-                    <th>Acciones</th>
-                    <th>Rentabilidad €</th>
-                    <th>Rentabilidad %</th>
-                    {% endif %}
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    {% if i.total_acciones > 0 %}
-                    <td>{{ i.empresa__nombre }}</td>
-                    <td>{{ i.total_acciones }}</td>
-                    <td>{{ i.precio_promedio }}</td>
-                    {% else %}
-                    <td>{{ i.empresa__nombre }}</td>
-                    <td>{{ i.total_acciones }}</td>
-                    <td>{{ i.coste_operacion | stringformat:".2f"}}</td>
-                    {% endif %}
-                </tr>
-            </tbody>
-            {% endfor %}
-        </table>
-    </div>
-    {% else %}
-    <p>No hay acciones de empresas en cartera.</p>
-    {% endif %} {% bootstrap_javascript jquery='full' %}
-</body>
-
-</html> -->

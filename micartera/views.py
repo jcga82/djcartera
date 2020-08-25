@@ -75,20 +75,25 @@ def index(request):
     # symbols = empresas.values_list('symbol', flat=True)
     # print(symbols)
     
-    stocks_start = datetime(2020, 7, 24)
+    stocks_start = datetime(2020, 8, 1)
     stocks_end = datetime(2020, 8, 24)
 
     daily_adj_close = pa.get_data(symbols, stocks_start, stocks_end)
     daily_adj_close = daily_adj_close[['Close']].reset_index()
     #print(daily_adj_close) #Ofrece el precio de cierre de todo el periodo seleccionado
-    # daily_benchmark = get_benchmark(['SPY'], stocks_start, stocks_end)
-    # daily_benchmark = daily_benchmark[['Date', 'Close']]
+    daily_benchmark = pa.get_benchmark(['SPY'], stocks_start, stocks_end)
+    daily_benchmark = daily_benchmark[['Date', 'Close']]
     market_cal = pa.create_market_cal(stocks_start, stocks_end)
     #print('market_cal:', market_cal)
     active_portfolio = pa.portfolio_start_balance(portfolio_df, stocks_start)
-    print('active_portfolio:', active_portfolio)
+    print('active_portfolio:')
+    print(active_portfolio)
     positions_per_day = pa.time_fill(active_portfolio, market_cal)
     print('positions_per_day:', positions_per_day)
+    # modified_cost_per_share = pa.modified_cost_per_share(portfolio_df, daily_adj_close, stocks_start)
+    # print('modified_cost_per_share:', modified_cost_per_share)
+    combined_df = pa.per_day_portfolio_calcs(positions_per_day, daily_benchmark, daily_adj_close, stocks_start)
+    print('combined_df:', combined_df)
 
 
 

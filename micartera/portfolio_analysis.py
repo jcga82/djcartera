@@ -54,7 +54,7 @@ def position_adjust(daily_positions, sale):
             position[1]['acciones'] -= sale[1]['acciones']
             sale[1]['acciones'] -= sale[1]['acciones']
         stocks_with_sales = stocks_with_sales.append(position[1])
-    print ('stocks_with_sales:', stocks_with_sales)
+    print ('stocks_with_sales, las que quedan:', stocks_with_sales)
     return stocks_with_sales
 
 
@@ -75,10 +75,12 @@ def portfolio_start_balance(portfolio, start_date):
 
 
 def fifo(daily_positions, sales, date):
+    print('entro al modeulo FIFO...')
     sales = sales[sales['fecha'].astype('datetime64[ns]') == date]
     daily_positions = daily_positions[daily_positions['fecha'].astype('datetime64[ns]') <= date]
     print('daily_positions:', daily_positions)
     positions_no_change = daily_positions[~daily_positions['empresa'].isin(sales['empresa'].unique())]
+    print('positions_no_change:', positions_no_change)
     adj_positions = pd.DataFrame()
     for sale in sales.iterrows():
         adj_positions = adj_positions.append(position_adjust(daily_positions, sale))
@@ -93,9 +95,8 @@ def time_fill(portfolio, market_cal):
     print("Las ventas son:", sales)
     per_day_balance = []
     for date in market_cal:
-        print(date, sales['fecha'].astype('datetime64[ns]'))
         if (sales['fecha'].astype('datetime64[ns]') == date).any():
-            print("Entro al if")
+            print('entro al if en el date:', date)
             portfolio = fifo(portfolio, sales, date)
         daily_positions = portfolio[portfolio['fecha'].astype('datetime64[ns]') <= date]
         daily_positions = daily_positions[daily_positions['tipo'] == 'Compra']
@@ -106,10 +107,10 @@ def time_fill(portfolio, market_cal):
 
 # matches prices of each asset to open date, then adjusts for  cps of dates
 def modified_cost_per_share(portfolio, adj_close, start_date):
-    df = pd.merge(portfolio, adj_close, left_on=['Date Snapshot', 'Symbol'],
+    df = pd.merge(portfolio, adj_close, left_on=['Date Snapshot', 'empresa'],
                   right_on=['Date', 'Ticker'], how='left')
     df.rename(columns={'Close': 'Symbol Adj Close'}, inplace=True)
-    df['Adj cost daily'] = df['Symbol Adj Close'] * df['Qty']
+    df['Adj cost daily'] = df['Symbol Adj Close'] * df['acciones']
     df = df.drop(['Ticker', 'Date'], axis=1)
     return df
 
@@ -129,7 +130,7 @@ def benchmark_portfolio_calcs(portfolio, benchmark):
 
 def portfolio_end_of_year_stats(portfolio, adj_close_end):
     adj_close_end = adj_close_end[adj_close_end['Date'] == adj_close_end['Date'].max()]
-    portfolio_end_data = pd.merge(portfolio, adj_close_end, left_on='Symbol',
+    portfolio_end_data = pd.merge(portfolio, adj_close_end, left_on='empresa',
                                   right_on='Ticker')
     portfolio_end_data.rename(columns={'Close': 'Ticker End Date Close'}, inplace=True)
     portfolio_end_data = portfolio_end_data.drop(['Ticker', 'Date'], axis=1)
@@ -140,12 +141,12 @@ def portfolio_end_of_year_stats(portfolio, adj_close_end):
 def portfolio_start_of_year_stats(portfolio, adj_close_start):
     adj_close_start = adj_close_start[adj_close_start['Date'] == adj_close_start['Date'].min()]
     portfolio_start = pd.merge(portfolio, adj_close_start[['Ticker', 'Close', 'Date']],
-                                    left_on='Symbol', right_on='Ticker')
+                                    left_on='empresa', right_on='Ticker')
     portfolio_start.rename(columns={'Close': 'Ticker Start Date Close'}, inplace=True)
-    portfolio_start['Adj cost per share'] = np.where(portfolio_start['Open date'] <= portfolio_start['Date'],
+    portfolio_start['Adj cost per share'] = np.where(portfolio_start['fecha'].astype('datetime64[ns]') <= portfolio_start['Date'],
                                                           portfolio_start['Ticker Start Date Close'],
-                                                          portfolio_start['Adj cost per share'])
-    portfolio_start['Adj cost'] = portfolio_start['Adj cost per share'] * portfolio_start['Qty']
+                                                          portfolio_start['Adj cost daily'])#per share DA ERROR
+    portfolio_start['Adj cost'] = portfolio_start['Adj cost per share'] * portfolio_start['acciones']
     portfolio_start = portfolio_start.drop(['Ticker', 'Date'], axis=1)
     portfolio_start['Equiv Benchmark Shares'] = portfolio_start['Adj cost'] / portfolio_start['Benchmark Start Date Close']
     portfolio_start['Benchmark Start Date Cost'] = portfolio_start['Equiv Benchmark Shares'] * portfolio_start['Benchmark Start Date Close']
@@ -155,7 +156,7 @@ def portfolio_start_of_year_stats(portfolio, adj_close_start):
 def calc_returns(portfolio):
     portfolio['Benchmark Return'] = portfolio['Benchmark Close'] / portfolio['Benchmark Start Date Close'] - 1
     portfolio['Ticker Return'] = portfolio['Symbol Adj Close'] / portfolio['Adj cost per share'] - 1
-    portfolio['Ticker Share Value'] = portfolio['Qty'] * portfolio['Symbol Adj Close']
+    portfolio['Ticker Share Value'] = portfolio['acciones'] * portfolio['Symbol Adj Close']
     portfolio['Benchmark Share Value'] = portfolio['Equiv Benchmark Shares'] * portfolio['Benchmark Close']
     portfolio['Stock Gain / (Loss)'] = portfolio['Ticker Share Value'] - portfolio['Adj cost']
     portfolio['Benchmark Gain / (Loss)'] = portfolio['Benchmark Share Value'] - portfolio['Adj cost']
@@ -168,8 +169,10 @@ def calc_returns(portfolio):
 def per_day_portfolio_calcs(per_day_holdings, daily_benchmark, daily_adj_close, stocks_start):
     df = pd.concat(per_day_holdings, sort=True)
     mcps = modified_cost_per_share(df, daily_adj_close, stocks_start)
+    #print('modified_cost_per_share:', mcps)
     bpc = benchmark_portfolio_calcs(mcps, daily_benchmark)
     pes = portfolio_end_of_year_stats(bpc, daily_adj_close)
+    #print('portfolio_end_of_year_stats:', portfolio_end_of_year_stats)
     pss = portfolio_start_of_year_stats(pes, daily_adj_close)
     returns = calc_returns(pss)
     return returns
@@ -194,9 +197,6 @@ def line(df, val_1, val_2):
 
 
 
-#print(positions_per_day)
-# combined_df = per_day_portfolio_calcs(positions_per_day, daily_benchmark,
-#                                       daily_adj_close, stocks_start)
 
 # line_facets(combined_df, 'Ticker Return', 'Benchmark Return')
 # line(combined_df, 'Stock Gain / (Loss)', 'Benchmark Gain / (Loss)')

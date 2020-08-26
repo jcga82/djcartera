@@ -75,7 +75,7 @@ def index(request):
     # symbols = empresas.values_list('symbol', flat=True)
     # print(symbols)
     
-    stocks_start = datetime(2020, 8, 1)
+    stocks_start = datetime(2020, 8, 5)
     stocks_end = datetime(2020, 8, 24)
 
     daily_adj_close = pa.get_data(symbols, stocks_start, stocks_end)
@@ -97,22 +97,23 @@ def index(request):
 
 
 
-    #positions_summary = pu.get_position_summary(cartera_actual_list)#Movimiento.objects.all())
-    
+    positions_summary = pu.get_position_summary(combined_df)#Movimiento.objects.all())
+    valor_cartera_total_diaria = pu.get_valor_cartera_total_diaria(combined_df)
     
     #print(positions_summary)
     # print(positions_summary["Total Gain/Loss ($)"].iloc[-1])
 
-    # accounts = Cartera.objects.all()
-    # total_cash = sum((acct.capital_inicial for acct in accounts))
+    accounts = Cartera.objects.all()
+    total_cash = sum((acct.capital_inicial for acct in accounts))
 
     context = {
-        # "positions": positions_summary.to_html(index=False, float_format=lambda x: '%.2f' % x),
-        # "accounts": [acct.nombre for acct in accounts],
-        # "cash_balances": {acct: acct.capital_inicial for acct in accounts},
-        # "total_cash": "{:,.2f}".format(total_cash),
-        # "total_value": "{:,.2f}".format(total_cash + positions_summary["Market Value ($)"].iloc[0]),# + positions_summary["Total Gain/Loss ($)"].iloc[0]),
-        # "num_positions": positions_summary.shape[0] - 1,
+        "valor_cartera_total_diaria": valor_cartera_total_diaria.to_html(index=False, float_format=lambda x: '%.2f' % x),
+        "positions": positions_summary.to_html(index=False, float_format=lambda x: '%.2f' % x),
+        "accounts": [acct.nombre for acct in accounts],
+        "cash_balances": {acct: acct.capital_inicial for acct in accounts},
+        "total_cash": "{:,.2f}".format(total_cash),
+        #"total_value": "{:,.2f}".format(total_cash + positions_summary["Market Value ($)"].iloc[0]),# + positions_summary["Total Gain/Loss ($)"].iloc[0]),
+        "num_positions": positions_summary.shape[0] - 1,
 
         'latest_movimientos_list': movimientos_list,
         'cartera_actual_list': cartera_actual_list,

@@ -16,7 +16,7 @@ def make_iex_request(ticker):
 def get_position_updates(position, max_retries=10, retry_after=1):
     """Gets metric updates from IEX API for a single Position object"""
 
-    ticker = position['empresa__symbol']
+    ticker = position['empresa'] #empresa__symbol
     response = make_iex_request(ticker)
     status_code = response.status_code
 
@@ -40,7 +40,7 @@ def get_position_updates(position, max_retries=10, retry_after=1):
     pct_change = 100. * (data['quote']['changePercent'] or 0.00)
 
     record = {
-        "Name": position['empresa__symbol'],
+        "Name": position['empresa'],
         "Symbol": ticker,
         "Shares": position['total_acciones'],
         "Cost Basis ($)": position['coste_operacion'],
@@ -91,10 +91,10 @@ def get_totals(df):
 
     totals_df = pd.DataFrame({
         "Name": "Totals",
-        "Cost Basis ($)": df["Cost Basis ($)"].sum(),
-        "Day's Change (%)": (100. * df["Day's Gain/Loss ($)"].sum() / df["Market Value ($)"].sum()),
+        "Adj cost": df["Adj cost"].sum(),
+        # "Day's Change (%)": (100. * df["Day's Gain/Loss ($)"].sum() / df["Market Value ($)"].sum()),
         "Market Value ($)": df["Market Value ($)"].sum(),
-        "Day's Gain/Loss ($)": df["Day's Gain/Loss ($)"].sum(),
+        # "Day's Gain/Loss ($)": df["Day's Gain/Loss ($)"].sum(),
         "Account": ""
     }, index=[0])
 
@@ -109,7 +109,7 @@ def format_positions_summary(df):
     df["Day's Change (%)"] = df["Day's Change (%)"].astype(float).round(2)
     df["Market Value ($)"] = df["Market Value ($)"].astype(float).round(2)
     df["Day's Gain/Loss ($)"] = df["Day's Gain/Loss ($)"].astype(float).round(2)
-    df["Cost Basis ($)"] = df["Cost Basis ($)"].astype(float).round(2)
+    df["Adj cost"] = df["Adj cost"].astype(float).round(2)
 
     # sort by largest position and fill null values with empty string (b/c I like it that way)
     df.sort_values("Market Value ($)", inplace=True, ascending=False)
@@ -118,28 +118,54 @@ def format_positions_summary(df):
     return df
 
 
+def get_valor_cartera_total_diaria(positions):
+
+    cols = ["Date Snapshot", "Market Value ($)", "Cash (€)", "Total (€)", "Day's Change ($)", "Day's Change (%)",
+            "Day's Gain/Loss ($)", "Adj cost", "Total Gain/Loss ($)", "Overall Return (%)", "Account"]
+    df = positions
+    df["Market Value ($)"] = df["acciones"] * df["Symbol Adj Close"]
+    df = df.groupby(['Date Snapshot'], as_index=False).sum()
+    # valores_cartera = len(df)
+    # print("Hay estos valores:", valores_cartera)
+    df = format_positions_summary(df.loc[:, cols])
+
+    return df
+
+
 def get_position_summary(positions):
     """Builds and formats summary of positions for given Position object input"""
 
     # columns to return
-    cols = ["Name", "Symbol", "Shares", "Market Value ($)", "Último precio ($)", "Day's Change ($)", "Day's Change (%)",
-            "Day's Gain/Loss ($)", "Cost Basis ($)", "Total Gain/Loss ($)", "Overall Return (%)", "Account"]
+    cols = ["Date Snapshot", "empresa", "acciones", "Symbol Adj Close", "Market Value ($)", "Day's Change ($)", "Day's Change (%)",
+            "Day's Gain/Loss ($)", "Adj cost", "Total Gain/Loss ($)", "Overall Return (%)", "Account"]
 
-    df = get_positions_dataframe(positions, nthreads=10)
+    df = positions
+    df["Market Value ($)"] = df["acciones"] * df["Symbol Adj Close"]
+
+    #df = get_positions_dataframe(positions, nthreads=10)
+    df = df.groupby(['Date Snapshot', 'empresa'], as_index=False)['acciones', 'Symbol Adj Close', 'Market Value ($)'].sum()#['Symbol Adj Close', 'acciones'].sum() #.agg({'acciones':'sum'}).agg({'Symbol Adj Close':'sum'}).reset_index() 
+    
+    #['acciones'].sum().reset_index() #['Symbol Adj Close', 'acciones','Date Snapshot', 'empresa'].mean().add_suffix('_sum')
+    #df = df_series.to_frame()
+    print('este:', df)
+
+    # df["Fecha"] = df.groupby('Date Snapshot')
+    #df["Nombre"] = df['empresa']
+
 
     # derived values needed before adding totals row
-    df["Market Value ($)"] = df["Shares"] * df["Last Price ($)"]
-    df["Day's Gain/Loss ($)"] = df["Shares"] * df["Day's Change ($)"]
+    
+    # df["Day's Gain/Loss ($)"] = df["acciones"] * df["Day's Change ($)"]
 
     # create and append totals row
-    totals_df = get_totals(df)
-    df = df.append(totals_df, ignore_index=True)
+    # totals_df = get_totals(df)
+    # df = df.append(totals_df, ignore_index=True)
 
     # derived values needed after adding totals row
     # Si ya no tengo acciones aqui quiero que aparezca la gancia o perdida
-    print("ESTOOOO Hay X acciones con 0:")
-    print(df['Shares'].isnull().sum().sum())
-    df.loc[df['Shares'].isnull(),'value_is_NaN'] = 'Yes'
+    # print("ESTOOOO Hay X acciones con 0:")
+    # print(df['acciones'].isnull().sum().sum())
+    # df.loc[df['acciones'].isnull(),'value_is_NaN'] = 'Yes'
     # if (df['Shares'].isnull().any()):
     #     print("Vamos")
     #     df["Total Gain/Loss ($)"] = (df["Market Value ($)"] - df["Cost Basis ($)"]).astype(float).round(2)
@@ -147,8 +173,8 @@ def get_position_summary(positions):
     #     df["Total Gain/Loss ($)"] = (df["Cost Basis ($)"]).astype(float).round(2)
     
     
-    df["Total Gain/Loss ($)"] = (df["Market Value ($)"] - df["Cost Basis ($)"]).astype(float).round(2)
-    df["Overall Return (%)"] = (100. * df["Total Gain/Loss ($)"] / df["Cost Basis ($)"]).astype(float).round(2)
+    # df["Total Gain/Loss ($)"] = (df["Market Value ($)"] - df["Cost Basis ($)"]).astype(float).round(2)
+    # df["Overall Return (%)"] = (100. * df["Total Gain/Loss ($)"] / df["Cost Basis ($)"]).astype(float).round(2)
 
     # final formatting
     df = format_positions_summary(df.loc[:, cols])

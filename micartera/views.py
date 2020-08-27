@@ -3,12 +3,14 @@ from .models import Movimiento, Cartera, Empresa
 from django.db.models import Avg, Sum, F, Q, FloatField, Case, CharField, Value, When
 from django.views.generic import TemplateView
 from datetime import datetime
-from . import portfolio_utils as pu
-from . import portfolio_analysis as pa
-from pyrtfolio.StockPortfolio import StockPortfolio
 import pandas as pd
 import os
 from django_pandas.io import read_frame
+
+from . import portfolio_utils as pu
+from . import portfolio_analysis as pa
+from pyrtfolio.StockPortfolio import StockPortfolio
+#from investpy. VOY A SACAR LAS ESPAÑOLAS Y LOS ETF JE00B1VS3770 estáaaaaa
 
 class DashboardView(TemplateView):
     template_name = 'micartera/dashboard.html'
@@ -66,22 +68,27 @@ def index(request):
 
     # THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
     # my_file = os.path.join(THIS_FOLDER, 'test_stock_transactions.csv')
-    portfolio_df = read_frame(Movimiento.objects.all()) #pd.read_csv(my_file) filter(tipo='a')
-    empresas_validas = Empresa.objects.filter(tipo='a', pais='EEUU')
-    print(empresas_validas)
+
+    empresas_eeuu = Empresa.objects.all()#filter(pais='united states') # , tipo='a'
+    empresas_es = Empresa.objects.filter(pais='spain')
+    portfolio_df = read_frame(Movimiento.objects.filter(empresa__in=empresas_eeuu)) #pd.read_csv(my_file) filter(tipo='a')
+    print('aqui;', portfolio_df)
     symbols = portfolio_df.empresa.unique()#empresas_validas.unique()
     print(symbols)
 
     portfolio_df['fecha'] = pd.to_datetime(portfolio_df['fecha'].dt.normalize())
+    portfolio_df.sort_values("fecha", inplace=True, ascending=True)
     print('portfolio_df:', portfolio_df)
 
     
     # empresas = Empresa.objects.filter(nombre__in=empresas_cartera)
     # symbols = empresas.values_list('symbol', flat=True)
     
-    stocks_start = datetime(2020, 8, 5)
-    stocks_end = datetime(2020, 8, 24)
+    stocks_start = datetime(2020, 2, 1)
+    stocks_end = datetime(2020, 2, 25)
 
+
+    # GETDATA EEUU EN YFINANCE
     daily_adj_close = pa.get_data(symbols, stocks_start, stocks_end)
     daily_adj_close = daily_adj_close[['Close']].reset_index()
     #print(daily_adj_close) #Ofrece el precio de cierre de todo el periodo seleccionado
@@ -90,6 +97,7 @@ def index(request):
     market_cal = pa.create_market_cal(stocks_start, stocks_end)
     #print('market_cal:', market_cal)
     active_portfolio = pa.portfolio_start_balance(portfolio_df, stocks_start)
+    cartera_activa = pa.cartera_start_balance(portfolio_df, stocks_start) #para poner lo de la fecha luego 
     print('active_portfolio:')
     print(active_portfolio)
     positions_per_day = pa.time_fill(active_portfolio, market_cal)
@@ -110,7 +118,7 @@ def index(request):
     accounts = Cartera.objects.all()
     total_cash = sum((acct.capital_inicial for acct in accounts))
 
-    estado_cuenta_cartera = pu.get_estado_cuenta_cartera(active_portfolio, total_cash)
+    estado_cuenta_cartera = pu.get_estado_cuenta_cartera(portfolio_df, total_cash)
 
     context = {
         "estado_cuenta_cartera": estado_cuenta_cartera.to_html(index=False, float_format=lambda x: '%.2f' % x),

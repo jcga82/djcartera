@@ -58,6 +58,22 @@ def position_adjust(daily_positions, sale):
     return stocks_with_sales
 
 
+def cartera_start_balance(portfolio, start_date):
+    positions_before_start = portfolio[portfolio['fecha'].astype('datetime64[ns]') <= start_date]
+    future_positions = portfolio[portfolio['fecha'].astype('datetime64[ns]') >= start_date]
+    sales = positions_before_start[positions_before_start['tipo'] == 'Venta'].groupby(['empresa'])['acciones'].sum()
+    sales = sales.reset_index()
+    positions_no_change = positions_before_start[~positions_before_start['empresa'].isin(sales['empresa'].unique())]
+    adj_positions_df = pd.DataFrame()
+    # for sale in sales.iterrows():
+    #     adj_positions = position_adjust(positions_before_start, sale)
+    #     adj_positions_df = adj_positions_df.append(adj_positions)
+    adj_positions_df = adj_positions_df.append(sales)
+    adj_positions_df = adj_positions_df.append(positions_no_change)
+    adj_positions_df = adj_positions_df.append(future_positions)
+    #adj_positions_df = adj_positions_df[adj_positions_df['acciones'] > 0]
+    return adj_positions_df
+
 def portfolio_start_balance(portfolio, start_date):
     positions_before_start = portfolio[portfolio['fecha'].astype('datetime64[ns]') <= start_date]
     future_positions = portfolio[portfolio['fecha'].astype('datetime64[ns]') >= start_date]
@@ -139,6 +155,7 @@ def portfolio_end_of_year_stats(portfolio, adj_close_end):
 
 # Merge the overall dataframe with the adj close start of year dataframe for YTD tracking of tickers.
 def portfolio_start_of_year_stats(portfolio, adj_close_start):
+    print('adj_close_start:', portfolio)
     adj_close_start = adj_close_start[adj_close_start['Date'] == adj_close_start['Date'].min()]
     portfolio_start = pd.merge(portfolio, adj_close_start[['Ticker', 'Close', 'Date']],
                                     left_on='empresa', right_on='Ticker')
@@ -169,15 +186,16 @@ def calc_returns(portfolio):
 def per_day_portfolio_calcs(per_day_holdings, daily_benchmark, daily_adj_close, stocks_start):
     df = pd.concat(per_day_holdings, sort=True)
     mcps = modified_cost_per_share(df, daily_adj_close, stocks_start)
-    print('modified_cost_per_share:', mcps)
+    #print('modified_cost_per_share:', mcps)
     bpc = benchmark_portfolio_calcs(mcps, daily_benchmark)
+    #print('benchmark_portfolio_calcs:', bpc)
     pes = portfolio_end_of_year_stats(bpc, daily_adj_close)
-    #print('portfolio_end_of_year_stats:', pes)
-    try:
-        pss = portfolio_start_of_year_stats(pes, daily_adj_close)
-    except:
-        pss = pd.DataFrame()
-    #print('portfolio_start_of_year_stats:', pss)
+    print('portfolio_end_of_year_stats:', pes)
+    pss = portfolio_start_of_year_stats(pes, daily_adj_close)
+    # except:
+    #     pss = pd.DataFrame()
+    #     print("Hay un problema al calcular el pss")
+    print('portfolio_start_of_year_stats:', pss)
     try:
         returns = calc_returns(pss)
     except:

@@ -5,7 +5,7 @@ from django.utils.html import mark_safe
 import investpy
 import csv, operator
 import os
-import dateutil.parser
+from datetime import datetime   
 
 def desactiva_empresa(modeladmin, request, queryset):
     queryset.update(status='n')
@@ -31,13 +31,14 @@ def carga_csv_degiro(self, request, queryset):
                 else:
                     tipo = 'v'
                 print(row["Fecha"])
-                fecha = dateutil.parser.parse(row["Fecha"] + ' ' + row["Hora"])
+                fecha = row["Fecha"]+ ' ' + row["Hora"]
+                fecha = datetime.strptime(fecha, '%d-%m-%Y %H:%M')
                 print(fecha)
                 try:
                     tipo_cambio = float(row["Tipo de cambio"])
                 except:
                     tipo_cambio = 1.0
-                mov = Movimiento(empresa=empresa, cartera=cartera[0], tipo=tipo, acciones=float(row["Número"]), precio=float(row["Precio"]), cambio_moneda=tipo_cambio, fecha=fecha) #comision=float(row["Comisión"]))
+                mov = Movimiento(empresa=empresa, cartera=cartera[0], tipo=tipo, acciones=abs(float(row["Número"])), precio=float(row["Precio"]), cambio_moneda=tipo_cambio, fecha=fecha) #comision=float(row["Comisión"]))
                 print(mov)
                 mov.save()
             else:
@@ -62,6 +63,12 @@ def descarga_registros(self, request, queryset):
         print(perfil)
 
 descarga_registros.short_description = "Descarga Registros"
+
+def duplicate_event(modeladmin, request, queryset):
+    for object in queryset:
+        object.id = None
+        object.save()
+duplicate_event.short_description = "Duplicar registro seleccionado"
 
 def format_date(self, obj):
     return obj.date.strftime('%b, %Y')
@@ -95,7 +102,7 @@ class EmpresaAdmin(admin.ModelAdmin):
 
 class MovimientoAdmin(admin.ModelAdmin):
     list_display = ('fecha', 'empresa', 'tipo', 'acciones', 'cambio_moneda', 'precio', 'coste_operacion', 'coste_total', )
-    actions = [carga_csv_degiro, ]
+    actions = [carga_csv_degiro, duplicate_event]
     list_filter = ['fecha', 'empresa', 'tipo']
 
 class CarteraAdmin(admin.ModelAdmin):

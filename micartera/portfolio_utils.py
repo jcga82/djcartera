@@ -113,7 +113,6 @@ def format_positions_summary(df):
     df["Adj cost"] = df["Adj cost"].astype(float).round(2)
 
     # sort by largest position and fill null values with empty string (b/c I like it that way)
-    df.sort_values("Market Value ($)", inplace=True, ascending=False)
     df.fillna("", inplace=True)
 
     return df
@@ -121,10 +120,9 @@ def format_positions_summary(df):
 def format_positions_summary2(df):
 
     df["Coste (€)"] = df["Coste (€)"].astype(float).round(2)
-    df["Valor Cartera (€)"] = df["Valor Cartera (€)"].astype(float).round(2)
+    df["Cash Cartera (€)"] = df["Cash Cartera (€)"].astype(float).round(2)
 
-    df.sort_values("Coste (€)", inplace=True, ascending=False)
-    df.sort_values("Valor Cartera (€)", inplace=True, ascending=False)
+    
     df.fillna("", inplace=True)
 
     return df
@@ -132,35 +130,36 @@ def format_positions_summary2(df):
 
 def get_estado_cuenta_cartera(positions, total_cash):
 
-    cols = ["fecha", "empresa", "acciones", "precio", "Coste (€)", "Valor Cartera (€)", "cambio_moneda"]
-    df = positions
-    df["Coste (€)"] = -1 * (df["acciones"] * df["precio"] * df["cambio_moneda"])
-    df['Valor Cartera (€)'] = 0
+    cols = ["fecha", "empresa", "acciones", "tipo", "precio", "Coste (€)", "Cash Cartera (€)", "cambio_moneda"]
+    df = positions.reset_index()
+    df.sort_values("fecha", inplace=True, ascending=True)
+
+    df.loc[df['tipo'] == 'Compra', 'Coste (€)'] = -1 * (df["acciones"] * df["precio"].astype(float).round(2) / df["cambio_moneda"].astype(float).round(2))
+    df.loc[df['tipo'] == 'Venta', 'Coste (€)'] = +1 * (df["acciones"] * df["precio"].astype(float).round(2) / df["cambio_moneda"].astype(float).round(2))
+
+    df['Cash Cartera (€)'] = 0
 
     for index, row in df.iterrows(): 
         if (index == 0):
-            print("Entro al 0")
-            df["Valor Cartera (€)"].iloc[index] = row["Coste (€)"] + total_cash
-            print(df['Valor Cartera (€)'].iloc[index])
+            df["Cash Cartera (€)"].iloc[index] = row["Coste (€)"] + float(total_cash)
+            #print(df['Cash Cartera (€)'].iloc[index])
         else:
-            print("Entro al siguiente", index, df["Valor Cartera (€)"].iloc[index - 1], row["Coste (€)"])
-            df["Valor Cartera (€)"].iloc[index] = df["Valor Cartera (€)"].iloc[index - 1] + row["Coste (€)"]
-            #df["Valor Cartera (€)"] = df["Valor Cartera (€)"].cumsum()
-            print(df['Valor Cartera (€)'].iloc[index])
-
+            df["Cash Cartera (€)"].iloc[index] = df["Cash Cartera (€)"].iloc[index - 1] + row["Coste (€)"]
+            #df["Cash Cartera (€)"] = df["Cash Cartera (€)"].cumsum()
+            
     df = format_positions_summary2(df.loc[:, cols])
 
-    df.loc['Total']= df.sum()#.fillna(0)
-    df.sort_values('fecha')
+    #df.loc['Total']= df.sum()#.fillna(0)
 
     return df
 
 
 def get_valor_cartera_total_diaria(positions):
 
-    cols = ["", "Market Value ($)", "Cash (€)", "Total (€)", "Day's Change ($)", "Day's Change (%)",
+    cols = ["Date Snapshot", "Market Value ($)", "Cash (€)", "Total (€)", "Day's Change ($)", "Day's Change (%)",
             "Day's Gain/Loss ($)", "Adj cost", "Total Gain/Loss ($)", "Overall Return (%)", "Account"]
-    df = positions
+    df = positions#.reset_index()
+    df.sort_values("Market Value ($)", inplace=True, ascending=False)
     df["Market Value ($)"] = df["acciones"] * df["Symbol Adj Close"]
     #df["Cash (€)"] = 
     df = df.groupby(['Date Snapshot'], as_index=False).sum()

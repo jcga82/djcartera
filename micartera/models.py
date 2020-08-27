@@ -86,14 +86,14 @@ class Movimiento(models.Model):
 
     @property
     def coste_operacion(self):
-        return float(self.precio * self.acciones * self.cambio_moneda)
+        return round(float(self.precio * self.acciones / self.cambio_moneda), 2)
 
     @property
     def comision(self):
         if self.empresa.pais == 'united states':
-            return float(self.coste_operacion * 0.002)
+            return float(0.5 + self.acciones * 0.004)
         else:
-            return float(self.coste_operacion * 0.00125)
+            return float(2 + self.coste_operacion * 0.0005)
 
     @property
     def coste_total(self):

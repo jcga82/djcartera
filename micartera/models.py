@@ -27,6 +27,12 @@ TIPO_OPERACION_CHOICES = [
     ('v', 'Venta'),
 ]
 
+TIPO_ACTIVO_CHOICES = [
+    ('a', 'Acción'),
+    ('etf', 'ETF'),
+    ('otros', 'Otros')
+]
+
 class Empresa(models.Model):
     nombre = models.CharField(max_length=200)
     symbol = models.CharField(max_length=10)
@@ -34,6 +40,7 @@ class Empresa(models.Model):
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default='a')
     sector = models.CharField(max_length=10, choices=SECTOR_CHOICES, default='otros')
     pais = models.CharField(max_length=20, choices=PAISES_CHOICES, default='spain')
+    tipo = models.CharField(max_length=10, choices=TIPO_ACTIVO_CHOICES, default='a')
     #bolsa = models.CharField(max_length=20, choices=PAISES_CHOICES, default='IBEX')
     pub_date = models.DateTimeField('fecha alta', default=datetime.now, blank=True)
 
@@ -42,7 +49,7 @@ class Empresa(models.Model):
 
 class Cartera(models.Model):
     nombre = models.CharField(max_length=200)
-    capital_inicial = models.FloatField(default=0)
+    capital_inicial = models.DecimalField(default=0, decimal_places=4, max_digits=20)
    # cash_balance = models.FloatField(default=0.0)
     
     @property

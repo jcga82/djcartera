@@ -82,13 +82,13 @@ class EmpresaAdmin(admin.ModelAdmin):
     fieldsets = [
         ('Información general',               
             {'fields': 
-                [('nombre', 'symbol', 'isin'), ('pais', 'sector')
+                [('nombre', 'symbol', 'isin'), ('pais', 'sector', 'tipo')
                 ]},
         ),
         #('Date information', {'fields': ['pub_date'], 'classes': ['collapse']}),
     ]
     list_display = ('nombre', 'symbol', 'pub_date', 'status')
-    list_filter = ['pub_date', 'sector', 'pais']
+    list_filter = ['pub_date', 'sector', 'pais', 'tipo']
     actions = [desactiva_empresa, descarga_registros]
     inlines = [MovimientoInline]
 
@@ -103,11 +103,11 @@ class CarteraAdmin(admin.ModelAdmin):
     fieldsets = [
         ('Información general',               
             {'fields': 
-                [('nombre', 'capital_inicial', 'estado_cuenta'),
+                [('nombre', 'capital_inicial'),
                 ]},
         ),
     ]
-    list_display = ('nombre', 'capital_inicial', 'estado_cuenta')
+    list_display = ('nombre', 'capital_inicial')
     # actions = [desactiva_empresa, descarga_registros]
     inlines = [MovimientoInline]
 

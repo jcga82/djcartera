@@ -67,18 +67,22 @@
 
     </div>
 
+    <p id="positions-header" class="page-title">Estado de Cuenta de Mi Cartera</p>
+
+    <hr>
+
+    {{ estado_cuenta_cartera|safe }}
+
     <p id="positions-header" class="page-title">Posiciones Diarias Totales de Mi Cartera</p>
 
     <hr>
 
-    <!--Positions Table-->
     {{ valor_cartera_total_diaria|safe }}
 
     <p id="positions-header" class="page-title">Posiciones de Mi Cartera</p>
 
     <hr>
 
-    <!--Positions Table-->
     {{ positions|safe }}
 
 

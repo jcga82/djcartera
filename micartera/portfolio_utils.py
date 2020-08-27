@@ -2,6 +2,7 @@ import os
 import time
 import requests
 import pandas as pd
+import numpy as np
 from threading import Thread
 
 
@@ -105,7 +106,7 @@ def format_positions_summary(df):
     """Formats report for final display"""
 
     # rounding
-    df["Day's Change ($)"] = df["Day's Change ($)"].astype(float).round(2)
+    # df["Day's Change ($)"] = df["Day's Change ($)"].astype(float).round(2)
     df["Day's Change (%)"] = df["Day's Change (%)"].astype(float).round(2)
     df["Market Value ($)"] = df["Market Value ($)"].astype(float).round(2)
     df["Day's Gain/Loss ($)"] = df["Day's Gain/Loss ($)"].astype(float).round(2)
@@ -117,16 +118,52 @@ def format_positions_summary(df):
 
     return df
 
+def format_positions_summary2(df):
+
+    df["Coste (€)"] = df["Coste (€)"].astype(float).round(2)
+    df["Valor Cartera (€)"] = df["Valor Cartera (€)"].astype(float).round(2)
+
+    df.sort_values("Coste (€)", inplace=True, ascending=False)
+    df.sort_values("Valor Cartera (€)", inplace=True, ascending=False)
+    df.fillna("", inplace=True)
+
+    return df
+
+
+def get_estado_cuenta_cartera(positions, total_cash):
+
+    cols = ["fecha", "empresa", "acciones", "precio", "Coste (€)", "Valor Cartera (€)", "cambio_moneda"]
+    df = positions
+    df["Coste (€)"] = -1 * (df["acciones"] * df["precio"] * df["cambio_moneda"])
+    df['Valor Cartera (€)'] = 0
+
+    for index, row in df.iterrows(): 
+        if (index == 0):
+            print("Entro al 0")
+            df["Valor Cartera (€)"].iloc[index] = row["Coste (€)"] + total_cash
+            print(df['Valor Cartera (€)'].iloc[index])
+        else:
+            print("Entro al siguiente", index, df["Valor Cartera (€)"].iloc[index - 1], row["Coste (€)"])
+            df["Valor Cartera (€)"].iloc[index] = df["Valor Cartera (€)"].iloc[index - 1] + row["Coste (€)"]
+            #df["Valor Cartera (€)"] = df["Valor Cartera (€)"].cumsum()
+            print(df['Valor Cartera (€)'].iloc[index])
+
+    df = format_positions_summary2(df.loc[:, cols])
+
+    df.loc['Total']= df.sum()#.fillna(0)
+    df.sort_values('fecha')
+
+    return df
+
 
 def get_valor_cartera_total_diaria(positions):
 
-    cols = ["Date Snapshot", "Market Value ($)", "Cash (€)", "Total (€)", "Day's Change ($)", "Day's Change (%)",
+    cols = ["", "Market Value ($)", "Cash (€)", "Total (€)", "Day's Change ($)", "Day's Change (%)",
             "Day's Gain/Loss ($)", "Adj cost", "Total Gain/Loss ($)", "Overall Return (%)", "Account"]
     df = positions
     df["Market Value ($)"] = df["acciones"] * df["Symbol Adj Close"]
+    #df["Cash (€)"] = 
     df = df.groupby(['Date Snapshot'], as_index=False).sum()
-    # valores_cartera = len(df)
-    # print("Hay estos valores:", valores_cartera)
     df = format_positions_summary(df.loc[:, cols])
 
     return df
@@ -136,14 +173,16 @@ def get_position_summary(positions):
     """Builds and formats summary of positions for given Position object input"""
 
     # columns to return
-    cols = ["Date Snapshot", "empresa", "acciones", "Symbol Adj Close", "Market Value ($)", "Day's Change ($)", "Day's Change (%)",
+    cols = ["Date Snapshot", "empresa", "acciones", "precio", "Cost Basis ($)", "Symbol Adj Close", "Market Value ($)", "Day's Change (%)",
             "Day's Gain/Loss ($)", "Adj cost", "Total Gain/Loss ($)", "Overall Return (%)", "Account"]
 
     df = positions
     df["Market Value ($)"] = df["acciones"] * df["Symbol Adj Close"]
+    df["precio"] = df["precio"].astype(float).round(2)
+    df["Cost Basis ($)"] = df["acciones"] * df["precio"].astype(float).round(2)
 
     #df = get_positions_dataframe(positions, nthreads=10)
-    df = df.groupby(['Date Snapshot', 'empresa'], as_index=False)['acciones', 'Symbol Adj Close', 'Market Value ($)'].sum()#['Symbol Adj Close', 'acciones'].sum() #.agg({'acciones':'sum'}).agg({'Symbol Adj Close':'sum'}).reset_index() 
+    df = df.groupby(['Date Snapshot', 'empresa'], as_index=False)['acciones', 'Symbol Adj Close', 'Market Value ($)', 'Cost Basis ($)', 'precio'].sum()#['Symbol Adj Close', 'acciones'].sum() #.agg({'acciones':'sum'}).agg({'Symbol Adj Close':'sum'}).reset_index() 
     
     #['acciones'].sum().reset_index() #['Symbol Adj Close', 'acciones','Date Snapshot', 'empresa'].mean().add_suffix('_sum')
     #df = df_series.to_frame()

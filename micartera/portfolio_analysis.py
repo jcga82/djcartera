@@ -169,12 +169,20 @@ def calc_returns(portfolio):
 def per_day_portfolio_calcs(per_day_holdings, daily_benchmark, daily_adj_close, stocks_start):
     df = pd.concat(per_day_holdings, sort=True)
     mcps = modified_cost_per_share(df, daily_adj_close, stocks_start)
-    #print('modified_cost_per_share:', mcps)
+    print('modified_cost_per_share:', mcps)
     bpc = benchmark_portfolio_calcs(mcps, daily_benchmark)
     pes = portfolio_end_of_year_stats(bpc, daily_adj_close)
-    #print('portfolio_end_of_year_stats:', portfolio_end_of_year_stats)
-    pss = portfolio_start_of_year_stats(pes, daily_adj_close)
-    returns = calc_returns(pss)
+    #print('portfolio_end_of_year_stats:', pes)
+    try:
+        pss = portfolio_start_of_year_stats(pes, daily_adj_close)
+    except:
+        pss = pd.DataFrame()
+    #print('portfolio_start_of_year_stats:', pss)
+    try:
+        returns = calc_returns(pss)
+    except:
+        returns = pd.DataFrame()
+
     return returns
 
 

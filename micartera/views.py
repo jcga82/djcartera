@@ -66,14 +66,18 @@ def index(request):
 
     # THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
     # my_file = os.path.join(THIS_FOLDER, 'test_stock_transactions.csv')
-    portfolio_df = read_frame(Movimiento.objects.all()) #pd.read_csv(my_file)
+    portfolio_df = read_frame(Movimiento.objects.all()) #pd.read_csv(my_file) filter(tipo='a')
+    empresas_validas = Empresa.objects.filter(tipo='a', pais='EEUU')
+    print(empresas_validas)
+    symbols = portfolio_df.empresa.unique()#empresas_validas.unique()
+    print(symbols)
+
     portfolio_df['fecha'] = pd.to_datetime(portfolio_df['fecha'].dt.normalize())
     print('portfolio_df:', portfolio_df)
 
-    symbols = portfolio_df.empresa.unique()
+    
     # empresas = Empresa.objects.filter(nombre__in=empresas_cartera)
     # symbols = empresas.values_list('symbol', flat=True)
-    # print(symbols)
     
     stocks_start = datetime(2020, 8, 5)
     stocks_end = datetime(2020, 8, 24)
@@ -106,7 +110,10 @@ def index(request):
     accounts = Cartera.objects.all()
     total_cash = sum((acct.capital_inicial for acct in accounts))
 
+    estado_cuenta_cartera = pu.get_estado_cuenta_cartera(active_portfolio, total_cash)
+
     context = {
+        "estado_cuenta_cartera": estado_cuenta_cartera.to_html(index=False, float_format=lambda x: '%.2f' % x),
         "valor_cartera_total_diaria": valor_cartera_total_diaria.to_html(index=False, float_format=lambda x: '%.2f' % x),
         "positions": positions_summary.to_html(index=False, float_format=lambda x: '%.2f' % x),
         "accounts": [acct.nombre for acct in accounts],

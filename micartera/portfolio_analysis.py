@@ -91,7 +91,8 @@ def portfolio_start_balance(portfolio, start_date):
 
 
 def fifo(daily_positions, sales, date):
-    print('entro al modeulo FIFO...')
+    #ESTA FUNCION HACE QUE NO SE METAN LAS COMPRAS
+    #print('entro al modeulo FIFO...', daily_positions)
     sales = sales[sales['fecha'].astype('datetime64[ns]') == date]
     daily_positions = daily_positions[daily_positions['fecha'].astype('datetime64[ns]') <= date]
     print('daily_positions:', daily_positions)
@@ -102,22 +103,28 @@ def fifo(daily_positions, sales, date):
         adj_positions = adj_positions.append(position_adjust(daily_positions, sale))
     adj_positions = adj_positions.append(positions_no_change)
     adj_positions = adj_positions[adj_positions['acciones'] > 0]
+    print('Hay acciones con = 0:', adj_positions['acciones'] == 0)
     return adj_positions
 
 
 def time_fill(portfolio, market_cal):
     sales = portfolio[portfolio['tipo'] == 'Venta'].groupby(['empresa','fecha'])['acciones'].sum()
     sales = sales.reset_index()
-    print("Las ventas son:", sales)
+    print("Las ventas son:", sales) #ESTO OK, PERO AL FINAL NO ME SALE LA COMPRA DEL DIA 19 DE ORY
     per_day_balance = []
     for date in market_cal:
+        print('La fecha es:', date)
         if (sales['fecha'].astype('datetime64[ns]') == date).any():
-            print('entro al if en el date:', date)
+            print('entro al if porque este dia ha habido venta', date)
             portfolio = fifo(portfolio, sales, date)
+            print('Salida resultado del FIFO:', portfolio)
+        #print('portfolio del time_fill', portfolio)
         daily_positions = portfolio[portfolio['fecha'].astype('datetime64[ns]') <= date]
         daily_positions = daily_positions[daily_positions['tipo'] == 'Compra']
+        #print('daily_positions tras el IF y tipo=Compra:', daily_positions[daily_positions['tipo'] == 'Compra'])
         daily_positions['Date Snapshot'] = date
         per_day_balance.append(daily_positions)
+    #print('AL FINAL DE LA FUNCION SALE:', per_day_balance)
     return per_day_balance
 
 
@@ -146,8 +153,11 @@ def benchmark_portfolio_calcs(portfolio, benchmark):
 
 def portfolio_end_of_year_stats(portfolio, adj_close_end):
     adj_close_end = adj_close_end[adj_close_end['Date'] == adj_close_end['Date'].max()]
+    print('Ultimo cierre disponible de cada accion:', adj_close_end)
+    #EN ESTE MERGE SE PIERDEN LAS ACCIONES ESPANOLAS al poner delante ADX si aparece en el merge
     portfolio_end_data = pd.merge(portfolio, adj_close_end, left_on='empresa',
                                   right_on='Ticker')
+    #print('portfolio_end_data:', portfolio_end_data)
     portfolio_end_data.rename(columns={'Close': 'Ticker End Date Close'}, inplace=True)
     portfolio_end_data = portfolio_end_data.drop(['Ticker', 'Date'], axis=1)
     return portfolio_end_data
@@ -155,10 +165,13 @@ def portfolio_end_of_year_stats(portfolio, adj_close_end):
 
 # Merge the overall dataframe with the adj close start of year dataframe for YTD tracking of tickers.
 def portfolio_start_of_year_stats(portfolio, adj_close_start):
-    print('adj_close_start:', portfolio)
-    adj_close_start = adj_close_start[adj_close_start['Date'] == adj_close_start['Date'].min()]
-    portfolio_start = pd.merge(portfolio, adj_close_start[['Ticker', 'Close', 'Date']],
+    adj_close_start = adj_close_start[adj_close_start['Date'] == adj_close_start['Date'].min() + pd.DateOffset(1)] #para que no de error las españolas hay que sumar un dia
+    print('Primer cierre disponible de cada accion::', adj_close_start)
+    print('port', portfolio)
+    #EN ESTE MERGE SE PIERDEN LAS ACCIONES ESPANOLAS al poner delante ADX si aparece en el merge
+    portfolio_start = pd.merge(portfolio, adj_close_start, #[['Ticker', 'Close', 'Date']],
                                     left_on='empresa', right_on='Ticker')
+    print('portfolio_start3:', portfolio_start)
     portfolio_start.rename(columns={'Close': 'Ticker Start Date Close'}, inplace=True)
     portfolio_start['Adj cost per share'] = np.where(portfolio_start['fecha'].astype('datetime64[ns]') <= portfolio_start['Date'],
                                                           portfolio_start['Ticker Start Date Close'],
@@ -185,17 +198,18 @@ def calc_returns(portfolio):
 
 def per_day_portfolio_calcs(per_day_holdings, daily_benchmark, daily_adj_close, stocks_start):
     df = pd.concat(per_day_holdings, sort=True)
+    print('hola:', df)
     mcps = modified_cost_per_share(df, daily_adj_close, stocks_start)
     #print('modified_cost_per_share:', mcps)
     bpc = benchmark_portfolio_calcs(mcps, daily_benchmark)
-    #print('benchmark_portfolio_calcs:', bpc)
+    print('benchmark_portfolio_calcs:', bpc)
     pes = portfolio_end_of_year_stats(bpc, daily_adj_close)
-    print('portfolio_end_of_year_stats:', pes)
+    print('pes:', pes)
     pss = portfolio_start_of_year_stats(pes, daily_adj_close)
     # except:
     #     pss = pd.DataFrame()
     #     print("Hay un problema al calcular el pss")
-    print('portfolio_start_of_year_stats:', pss)
+    print('pss:', pss)
     try:
         returns = calc_returns(pss)
     except:

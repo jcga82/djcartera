@@ -10,7 +10,8 @@ from django_pandas.io import read_frame
 from . import portfolio_utils as pu
 from . import portfolio_analysis as pa
 from pyrtfolio.StockPortfolio import StockPortfolio
-#from investpy. VOY A SACAR LAS ESPAÑOLAS Y LOS ETF JE00B1VS3770 estáaaaaa
+import investpy
+#VOY A SACAR LAS ESPAÑOLAS Y LOS ETF JE00B1VS3770 italy ETFS Physical Gold
 
 class DashboardView(TemplateView):
     template_name = 'micartera/dashboard.html'
@@ -37,6 +38,8 @@ class DashboardView(TemplateView):
 
 
 def index(request):
+
+    
 
     # portfolio = StockPortfolio()
     # portfolio.add_stock(stock_symbol='BBVA',
@@ -84,14 +87,22 @@ def index(request):
     # empresas = Empresa.objects.filter(nombre__in=empresas_cartera)
     # symbols = empresas.values_list('symbol', flat=True)
     
-    stocks_start = datetime(2020, 2, 1)
-    stocks_end = datetime(2020, 2, 25)
+    stocks_start = datetime(2020, 1, 26)
+    stocks_end = datetime(2020, 2, 7)
+
+    dfETF = investpy.get_etf_historical_data(etf='ETFS Physical Gold', country='italy', from_date=stocks_start.strftime('%d/%m/%Y'), to_date=stocks_end.strftime('%d/%m/%Y'))
+    dfETF.drop(['Open', 'High', 'Low', 'Currency', 'Exchange'], axis = 'columns', inplace=True)
+    dfETF["Ticker"] = "PHAU"
+    dfETF['Date'] = pd.date_range(start=stocks_start.strftime('%d/%m/%Y'), periods=len(dfETF), freq='D')
+    #dfETF['Date'] = [d.strftime('%Y-%m-%d') if not pd.isnull(d) else '' for d in dfETF['Date']]
+    print('dataETF:', dfETF)
 
 
     # GETDATA EEUU EN YFINANCE
     daily_adj_close = pa.get_data(symbols, stocks_start, stocks_end)
     daily_adj_close = daily_adj_close[['Close']].reset_index()
-    #print(daily_adj_close) #Ofrece el precio de cierre de todo el periodo seleccionado
+    daily_adj_close=daily_adj_close.append(dfETF,ignore_index=True)
+    print('el precio de cierre de todo el periodo seleccionado es:', daily_adj_close) #Ofrece el precio de cierre de todo el periodo seleccionado
     daily_benchmark = pa.get_benchmark(['SPY'], stocks_start, stocks_end)
     daily_benchmark = daily_benchmark[['Date', 'Close']]
     market_cal = pa.create_market_cal(stocks_start, stocks_end)

@@ -27,11 +27,31 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',  # <-- And here
+    ],
+    'DEFAULT_FILTER_BACKENDS': ( 
+        'django_filters.rest_framework.DjangoFilterBackend',# Función de filtro
+        'rest_framework.filters.SearchFilter',   # función de búsqueda
+        'rest_framework.filters.OrderingFilter',  # Función de clasificación
+        ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10
+}
+
 
 # Application definition
 
 INSTALLED_APPS = [
     'micartera.apps.MicarteraConfig',
+    # 'micartera.apps.SuitConfig',
+    'rest_framework',
+    'rest_framework.authtoken',
+    'dj_rest_auth',
+    'django_filters',
+    'import_export',
+    'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -44,6 +64,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -51,6 +72,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+CORS_ORIGIN_ALLOW_ALL=True
 
 ROOT_URLCONF = 'djcartera.urls'
 
@@ -113,7 +136,7 @@ TIME_ZONE = 'Europe/Berlin'
 USE_I18N = True
 
 USE_L10N = True
-
+USE_THOUSAND_SEPARATOR = True
 USE_TZ = True
 
 

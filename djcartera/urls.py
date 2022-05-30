@@ -13,12 +13,29 @@ Including another URLconf
     1. Import the include() function: from django.conf.urls import url, include
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
-from django.conf.urls import url
+
 from django.contrib import admin
 from django.urls import include, path
+from micartera.views import *
+from micartera import views
+
+from django.contrib import admin
+
 
 urlpatterns = [
-    path('micartera/', include('micartera.urls')),
-    url(r'^admin/', admin.site.urls),
+    # Django Admin
+    path('admin/', admin.site.urls),
+
+    path('', include(('micartera.urls', 'users'), namespace='users')),
+    path('', include(('micartera.urls', 'carteras'), namespace='carteras')),
+    path('', include(('micartera.urls', 'empresas'), namespace='empresas')),
+    path('', include(('micartera.urls', 'dividendos'), namespace='dividendos')),
+    path('', include(('micartera.urls', 'fundamentales'), namespace='fundamentales')),
+    path('', include(('micartera.urls', 'historico'), namespace='historico')),
+    path('', include(('micartera.urls', 'qhistorico'), namespace='qhistorico')),
+    path('', include(('micartera.urls', 'viviendas'), namespace='viviendas')),
+    path('micartera/', include(('micartera.urls', 'micartera'), namespace='micartera')),
+    path('api/authentication/', include('dj_rest_auth.urls')),
+    # url(r'^admin/', admin.site.urls),
 
 ]

@@ -7,6 +7,7 @@ Dependencias
 python3 -m pip install bootstrap4
 sudo pip3 install investpy
 
+
 ##LANZAR APP
 python3 manage.py runserver
 

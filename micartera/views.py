@@ -1,15 +1,358 @@
 from django.shortcuts import render
+
+from micartera.filtros import DividendosFilter
 from .models import Movimiento, Cartera, Empresa
 from django.db.models import Avg, Sum, F, Q, FloatField, Case, CharField, Value, When
+from django.contrib.auth.models import User, Group
 from django.views.generic import TemplateView
 from datetime import datetime
 import pandas as pd
-import os
-from django_pandas.io import read_frame
+# from django_pandas.io import read_frame
+from rest_framework import generics, status, mixins, viewsets
+from rest_framework import permissions
+from .serializers import *
+from rest_framework.response import Response
+from rest_framework.decorators import action
+
+from .serializers import *
+
+
+# Permissions
+from rest_framework.permissions import IsAuthenticated
+# from users.permissions import IsStandardUser
+
+#CARTERAS
+class CarteraViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin,
+                        mixins.DestroyModelMixin, viewsets.GenericViewSet):
+
+    serializer_class = CarteraModelSerializer
+
+    # def get_permissions(self):
+    #     permission_classes = [IsAuthenticated, ]
+    #     return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        queryset = Cartera.objects.all()#filter(user=self.request.user)
+        return queryset
+        
+    def create(self, request, *args, **kwargs):
+        serializer = CarteraSerializer(data=request.data, context={"request": self.request})
+        serializer.is_valid(raise_exception=True)
+        emp = serializer.save()
+        data = CarteraModelSerializer(emp).data
+        return Response(data, status=status.HTTP_201_CREATED)
+
+
+#DIVIDENDOS
+class DividendoEmpresaViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin,
+                        mixins.DestroyModelMixin, viewsets.GenericViewSet):
+
+    serializer_class = DividendoEmpresaModelSerializer
+    paginator = None
+    # filter_class = DividendosFilter
+    # filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    # filterset_fields = ['id', 'name']
+    # search_fields = ['=name', 'intro']
+    # ordering_fields = ['name', 'id']
+    # ordering = ['id']
+
+    # def get_permissions(self):
+    #     permission_classes = [IsAuthenticated, ]
+    #     return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        symbol = self.request.query_params.get('symbol', None)
+        empresa = Empresa.objects.filter(symbol=symbol)
+        queryset = DividendoEmpresa.objects.filter(empresa=empresa[0].id)
+        return queryset
+        
+    def create(self, request, *args, **kwargs):
+        serializer = DividendoEmpresaSerializer(data=request.data, context={"request": self.request})
+        serializer.is_valid(raise_exception=True)
+        div = serializer.save()
+        data = EmpresaModelSerializer(div).data
+        return Response(data, status=status.HTTP_201_CREATED)
+
+#EMPRESAS
+class EmpresaViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin,
+                        mixins.DestroyModelMixin, viewsets.GenericViewSet):
+
+    serializer_class = EmpresaModelSerializer
+
+    # def get_permissions(self):
+    #     permission_classes = [IsAuthenticated, ]
+    #     return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        """Restrict list to only user experience."""
+        queryset = Empresa.objects.all()#filter(user=self.request.user)
+        return queryset
+        
+    def create(self, request, *args, **kwargs):
+        serializer = EmpresaSerializer(data=request.data, context={"request": self.request})
+        serializer.is_valid(raise_exception=True)
+        emp = serializer.save()
+        data = EmpresaModelSerializer(emp).data
+        return Response(data, status=status.HTTP_201_CREATED)
+
+
+#FUNDAMENTALES EMPRESAS
+class FundamentalesEmpresaViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin,
+                        mixins.DestroyModelMixin, viewsets.GenericViewSet):
+
+    serializer_class = FundamentalesEmpresaModelSerializer
+
+    # def get_permissions(self):
+    #     permission_classes = [IsAuthenticated, ]
+    #     return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        symbol = self.request.query_params.get('symbol', None)
+        empresa = Empresa.objects.filter(symbol=symbol)
+        queryset = FundamentalesEmpresa.objects.filter(empresa=empresa[0].id)
+        print(empresa[0].id)
+        return queryset
+        
+    def create(self, request, *args, **kwargs):
+        serializer = FundamentalesEmpresaSerializer(data=request.data, context={"request": self.request})
+        serializer.is_valid(raise_exception=True)
+        div = serializer.save()
+        data = FundamentalesEmpresaModelSerializer(div).data
+        return Response(data, status=status.HTTP_201_CREATED)
+
+#HISTORICO EMPRESAS
+class HistoricoEmpresaViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin,
+                        mixins.DestroyModelMixin, viewsets.GenericViewSet):
+
+    serializer_class = HistoricoEmpresaModelSerializer
+
+    # def get_permissions(self):
+    #     permission_classes = [IsAuthenticated, ]
+    #     return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        id = self.request.query_params.get('id', None)
+        queryset = HistoricoEmpresa.objects.filter(empresa=id)
+        return queryset
+        
+    def create(self, request, *args, **kwargs):
+        serializer = HistoricoEmpresaSerializer(data=request.data, context={"request": self.request})
+        serializer.is_valid(raise_exception=True)
+        emp = serializer.save()
+        data = HistoricoEmpresaModelSerializer(emp).data
+        return Response(data, status=status.HTTP_201_CREATED)
+
+#QHISTORICO EMPRESAS
+class QHistoricoEmpresaViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin,
+                        mixins.DestroyModelMixin, viewsets.GenericViewSet):
+    serializer_class = QHistoricoEmpresaModelSerializer
+    paginator = None
+
+    def get_queryset(self):
+        id = self.request.query_params.get('id', None)
+        queryset = QHistoricoEmpresa.objects.all()
+        return queryset
+        
+    def create(self, request, *args, **kwargs):
+        serializer = QHistoricoEmpresaSerializer(data=request.data, context={"request": self.request})
+        serializer.is_valid(raise_exception=True)
+        emp = serializer.save()
+        data = QHistoricoEmpresaModelSerializer(emp).data
+        return Response(data, status=status.HTTP_201_CREATED)
+
+#HISTORICO CASILLAS
+class HistoricoCasillasViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin,
+                        mixins.DestroyModelMixin, viewsets.GenericViewSet):
+
+    serializer_class = HistoricoCasillasModelSerializer
+
+    # def get_permissions(self):
+    #     permission_classes = [IsAuthenticated, ]
+    #     return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        address = self.request.query_params.get('address', None)
+        queryset = HistoricoCasillas.objects.filter(address=address)
+        return queryset
+        
+    def create(self, request, *args, **kwargs):
+        serializer = HistoricoCasillasModelSerializer(data=request.data, context={"request": self.request})
+        serializer.is_valid(raise_exception=True)
+        hist = serializer.save()
+        data = HistoricoCasillasModelSerializer(hist).data
+        return Response(data, status=status.HTTP_201_CREATED)
+
+#VIVIENDAS
+class ViviendaViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin,
+                        mixins.DestroyModelMixin, viewsets.GenericViewSet):
+
+    serializer_class = ViviendaModelSerializer
+
+    # def get_permissions(self):
+    #     permission_classes = [IsAuthenticated, ]
+    #     return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        id = self.request.query_params.get('id', None)
+        queryset = Vivienda.objects.all()#filter(user=self.request.user)
+        return queryset
+        
+    def create(self, request, *args, **kwargs):
+        serializer = ViviendaSerializer(data=request.data, context={"request": self.request})
+        serializer.is_valid(raise_exception=True)
+        emp = serializer.save()
+        data = ViviendaModelSerializer(emp).data
+        return Response(data, status=status.HTTP_201_CREATED)
+    
+    # def put(self, request, *args, **kwargs):
+    #     return self.update(request, *args, **kwargs)
+    
+    def put(self, request, pk):
+        viv = Vivienda.objects.filter(pk=pk).first()
+        print(viv)
+        if viv:
+            serializer = ViviendaSerializer(viv)
+            viv.save()
+            print(serializer.data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    def delete(self, request, pk):
+        viv = Vivienda.objects.filter(pk=pk).first()
+        if viv:
+            serializer = ViviendaSerializer(viv)
+            viv.delete()
+            print(serializer.data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+#CRIPTOS
+class CriptoViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin,
+                        mixins.DestroyModelMixin, viewsets.GenericViewSet):
+
+    serializer_class = CriptoModelSerializer
+
+    # def get_permissions(self):
+    #     permission_classes = [IsAuthenticated, ]
+    #     return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        queryset = Cripto.objects.all()
+        return queryset
+        
+    def create(self, request, *args, **kwargs):
+        serializer = CriptoSerializer(data=request.data, context={"request": self.request})
+        serializer.is_valid(raise_exception=True)
+        emp = serializer.save()
+        data = CriptoModelSerializer(emp).data
+        return Response(data, status=status.HTTP_201_CREATED)
+    
+    def put(self, request, pk):
+        viv = Cripto.objects.filter(pk=pk).first()
+        print(viv)
+        if viv:
+            serializer = CriptoSerializer(viv)
+            viv.save()
+            print(serializer.data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    def delete(self, request, pk):
+        viv = Cripto.objects.filter(pk=pk).first()
+        if viv:
+            serializer = CriptoSerializer(viv)
+            viv.delete()
+            print(serializer.data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+#CRIPTO FUNDAMENTALES
+class FundamentalesCriptoViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin,
+                        mixins.DestroyModelMixin, viewsets.GenericViewSet):
+
+    serializer_class = FundamentalesCriptoModelSerializer
+
+    # def get_permissions(self):
+    #     permission_classes = [IsAuthenticated, ]
+    #     return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        id = self.request.query_params.get('id', None)
+        queryset = FundamentalesCripto.objects.filter(cripto=id)
+        return queryset
+        
+    def create(self, request, *args, **kwargs):
+        serializer = FundamentalesCriptoSerializer(data=request.data, context={"request": self.request})
+        serializer.is_valid(raise_exception=True)
+        emp = serializer.save()
+        data = FundamentalesCriptoModelSerializer(emp).data
+        return Response(data, status=status.HTTP_201_CREATED)
+
+#CRIPTO ANALISIS
+class AnalisisCriptoViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin,
+                        mixins.DestroyModelMixin, viewsets.GenericViewSet):
+
+    serializer_class = AnalisisCriptoModelSerializer
+
+    # def get_permissions(self):
+    #     permission_classes = [IsAuthenticated, ]
+    #     return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        id = self.request.query_params.get('id', None)
+        queryset = AnalisisCripto.objects.filter(cripto=id)
+        return queryset
+        
+    def create(self, request, *args, **kwargs):
+        serializer = AnalisisCriptoSerializer(data=request.data, context={"request": self.request})
+        serializer.is_valid(raise_exception=True)
+        emp = serializer.save()
+        data = AnalisisCriptoModelSerializer(emp).data
+        return Response(data, status=status.HTTP_201_CREATED)
+
+class UserViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows users to be viewed or edited.
+    """
+    queryset = User.objects.all().order_by('-date_joined')
+    serializer_class = UserSerializer
+    # permission_classes = [permissions.IsAuthenticated]
+
+    @action(detail=False, methods=['post'])
+    def login(self, request):
+        """User sign in."""
+        serializer = UserLoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user, token = serializer.save()
+        data = {
+            'user': UserSerializer(user).data,
+            'access_token': token
+        }
+        return Response(data, status=status.HTTP_201_CREATED)
+    
+    @action(detail=False, methods=['post'])
+    def signup(self, request):
+        """User sign up."""
+        serializer = UserSignUpSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        data = UserSerializer(user).data
+        return Response(data, status=status.HTTP_201_CREATED)
+
+
+class GroupViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows groups to be viewed or edited.
+    """
+    queryset = Group.objects.all()
+    serializer_class = GroupSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
 from . import portfolio_utils as pu
 from . import portfolio_analysis as pa
-from pyrtfolio.StockPortfolio import StockPortfolio
+# from pyrtfolio.StockPortfolio import StockPortfolio
 import investpy
 #VOY A SACAR LAS ESPAÑOLAS Y LOS ETF JE00B1VS3770 italy ETFS Physical Gold
 
@@ -38,8 +381,6 @@ class DashboardView(TemplateView):
 
 
 def index(request):
-
-    
 
     # portfolio = StockPortfolio()
     # portfolio.add_stock(stock_symbol='BBVA',
@@ -74,7 +415,7 @@ def index(request):
 
     empresas_eeuu = Empresa.objects.all()#filter(pais='united states') # , tipo='a'
     empresas_es = Empresa.objects.filter(pais='spain')
-    portfolio_df = read_frame(Movimiento.objects.filter(empresa__in=empresas_eeuu)) #pd.read_csv(my_file) filter(tipo='a')
+    portfolio_df = []#read_frame(Movimiento.objects.filter(empresa__in=empresas_eeuu)) #pd.read_csv(my_file) filter(tipo='a')
     print('aqui;', portfolio_df)
     symbols = portfolio_df.empresa.unique()#empresas_validas.unique()
     print(symbols)
